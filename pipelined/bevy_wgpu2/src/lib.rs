@@ -111,7 +111,10 @@ impl Plugin for WgpuPlugin {
             .cloned()
             .unwrap_or_else(WgpuOptions::default);
         let wgpu_renderer = future::block_on(WgpuRenderer::new(options));
-        let resource_context = WgpuRenderResourceContext::new(wgpu_renderer.device.clone());
+        let resource_context = WgpuRenderResourceContext::new(
+            wgpu_renderer.device.clone(),
+            wgpu_renderer.queue.clone(),
+        );
         app.world
             .insert_resource(RenderResources::new(Box::new(resource_context.clone())));
         let render_app = app.sub_app_mut(0);

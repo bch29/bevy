@@ -40,7 +40,7 @@ impl WgpuRenderGraphRunner {
     pub fn run(
         graph: &RenderGraph,
         device: Arc<wgpu::Device>,
-        queue: &mut wgpu::Queue,
+        queue: &wgpu::Queue,
         world: &World,
         resources: &WgpuRenderResourceContext,
     ) -> Result<(), WgpuRenderGraphRunnerError> {

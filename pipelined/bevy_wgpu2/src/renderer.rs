@@ -9,7 +9,7 @@ use std::sync::Arc;
 pub struct WgpuRenderer {
     pub instance: wgpu::Instance,
     pub device: Arc<wgpu::Device>,
-    pub queue: wgpu::Queue,
+    pub queue: Arc<wgpu::Queue>,
     pub initialized: bool,
 }
 
@@ -60,6 +60,7 @@ impl WgpuRenderer {
             .await
             .unwrap();
         let device = Arc::new(device);
+        let queue = Arc::new(queue);
         WgpuRenderer {
             instance,
             device,
@@ -95,7 +96,7 @@ impl WgpuRenderer {
         WgpuRenderGraphRunner::run(
             graph,
             self.device.clone(),
-            &mut self.queue,
+            &*self.queue,
             world,
             resource_context,
         )
