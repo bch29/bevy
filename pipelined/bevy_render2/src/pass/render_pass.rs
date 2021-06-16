@@ -15,6 +15,12 @@ pub trait RenderPass {
     fn set_stencil_reference(&mut self, reference: u32);
     fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>);
     fn draw_indexed(&mut self, indices: Range<u32>, base_vertex: i32, instances: Range<u32>);
+    fn multi_draw_indirect(
+        &mut self,
+        indirect_buffer: BufferId,
+        indirect_offset: u64,
+        count: u32,
+    );
     fn set_bind_group(
         &mut self,
         index: u32,

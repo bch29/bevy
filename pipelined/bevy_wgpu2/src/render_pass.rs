@@ -51,6 +51,12 @@ impl<'a> RenderPass for WgpuRenderPass<'a> {
             .draw_indexed(indices, base_vertex, instances);
     }
 
+    fn multi_draw_indirect(&mut self, indirect_buffer: BufferId, indirect_offset: u64, count: u32) {
+        let indirect_buffer = self.wgpu_resources.buffers.get(&indirect_buffer).unwrap();
+        self.render_pass
+            .multi_draw_indirect(indirect_buffer, indirect_offset, count)
+    }
+
     fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>) {
         self.render_pass.draw(vertices, instances);
     }
