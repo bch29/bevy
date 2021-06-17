@@ -21,6 +21,7 @@ pub struct TextureGpuData {
 #[uuid = "6ea26da6-6cf8-4ea2-9986-1d7bf6c17d6f"]
 pub struct Texture {
     pub data: Vec<u8>,
+    pub mip_levels_data: Option<Vec<Vec<u8>>>,
     pub gpu_data: Option<TextureGpuData>,
     pub size: Extent3d,
     pub format: TextureFormat,
@@ -32,6 +33,7 @@ impl Default for Texture {
     fn default() -> Self {
         Texture {
             data: Default::default(),
+            mip_levels_data: None,
             gpu_data: None,
             size: Extent3d {
                 width: 1,

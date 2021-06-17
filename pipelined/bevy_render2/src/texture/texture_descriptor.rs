@@ -19,7 +19,11 @@ impl From<&Texture> for TextureDescriptor {
     fn from(texture: &Texture) -> Self {
         TextureDescriptor {
             size: texture.size,
-            mip_level_count: 1,
+            mip_level_count: 1 + texture
+                .mip_levels_data
+                .as_ref()
+                .map(|mip_levels| mip_levels.len() as u32)
+                .unwrap_or(0),
             sample_count: 1,
             dimension: texture.dimension,
             format: texture.format,

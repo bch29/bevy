@@ -91,32 +91,7 @@ pub fn texture_resource_system(
             let texture_id = render_resource_context.create_texture(texture_descriptor);
 
             let sampler_id = render_resource_context.create_sampler(&texture.sampler);
-
-            let width = texture.size.width as usize;
-            let aligned_width = render_resource_context.get_aligned_texture_size(width);
             let format_size = texture.format.pixel_size();
-            let mut aligned_data = vec![
-                0;
-                format_size
-                    * aligned_width
-                    * texture.size.height as usize
-                    * texture.size.depth_or_array_layers as usize
-            ];
-            texture
-                .data
-                .chunks_exact(format_size * width)
-                .enumerate()
-                .for_each(|(index, row)| {
-                    let offset = index * aligned_width * format_size;
-                    aligned_data[offset..(offset + width * format_size)].copy_from_slice(row);
-                });
-            let staging_buffer_id = render_resource_context.create_buffer_with_data(
-                BufferInfo {
-                    buffer_usage: BufferUsage::COPY_SRC,
-                    ..Default::default()
-                },
-                &aligned_data,
-            );
 
             let texture_view_id = render_resource_context
                 .create_texture_view(texture_id, TextureViewDescriptor::default());
@@ -126,16 +101,76 @@ pub fn texture_resource_system(
                 sampler: sampler_id,
             });
 
-            render_command_queue.copy_buffer_to_texture(
-                staging_buffer_id,
+            let mut queue_copy_command = |mip_level, width, height, data: &[u8]| {
+                let aligned_width =
+                    render_resource_context.get_aligned_texture_size(width);
+
+                let mut aligned_data = vec![
+                    0;
+                    format_size
+                        * aligned_width
+                        * height
+                        * texture.size.depth_or_array_layers as usize
+                ];
+                data.chunks_exact(format_size * width)
+                    .enumerate()
+                    .for_each(|(index, row)| {
+                        let offset = index * aligned_width * format_size;
+                        aligned_data[offset..(offset + width * format_size)].copy_from_slice(row);
+                    });
+                let staging_buffer_id = render_resource_context.create_buffer_with_data(
+                    BufferInfo {
+                        buffer_usage: BufferUsage::COPY_SRC,
+                        ..Default::default()
+                    },
+                    &aligned_data,
+                );
+
+                render_command_queue.copy_buffer_to_texture(
+                    staging_buffer_id,
+                    0,
+                    (format_size * aligned_width) as u32,
+                    texture_id,
+                    [0, 0, 0],
+                    mip_level,
+                    Extent3d {
+                        width: width as u32,
+                        height: height as u32,
+                        depth_or_array_layers: texture_descriptor.size.depth_or_array_layers,
+                    }
+                );
+                render_command_queue.free_buffer(staging_buffer_id);
+            };
+
+            queue_copy_command(
                 0,
-                (format_size * aligned_width) as u32,
-                texture_id,
-                [0, 0, 0],
-                0,
-                texture_descriptor.size,
+                texture.size.width as usize,
+                texture.size.height as usize,
+                texture.data.as_slice(),
             );
-            render_command_queue.free_buffer(staging_buffer_id);
+
+            if let Some(mip_levels_data) = &texture.mip_levels_data {
+                let mut next_mip_data_len = texture.data.len() / 4;
+                let mut next_mip_width = texture.size.width as usize / 2;
+                let mut next_mip_height = texture.size.height as usize / 2;
+
+                for (index, data) in mip_levels_data.iter().enumerate() {
+                    let mip_level = (1 + index) as u32;
+
+                    assert_eq!(data.len(), next_mip_data_len);
+
+                    queue_copy_command(
+                        mip_level,
+                        next_mip_width,
+                        next_mip_height,
+                        data.as_slice(),
+                    );
+
+                    next_mip_data_len /= 4;
+                    next_mip_width /= 2;
+                    next_mip_height /= 2;
+                }
+            }
         }
     }
 }
